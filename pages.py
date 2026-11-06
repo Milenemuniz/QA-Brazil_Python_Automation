@@ -12,9 +12,10 @@ class UrbanRoutesPage:
 
     phone_button = (By.CLASS_NAME, 'np-button')
     phone_input = (By.ID, 'phone')
-    phone_submit_button = (By.XPATH, '//button[text()="Next"]')
+    phone_submit_button = (By.XPATH, '//button[text()="Próximo"]')
     code_input = (By.ID, 'code')
-    code_submit_button = (By.XPATH, '//button[text()="Confirm"]')
+    # Seletor ajustado para aceitar tanto "Confirmar" quanto "Confirm"
+    code_submit_button = (By.XPATH, '//button[text()="Confirmar" or text()="Confirm"]')
 
     payment_method_button = (By.CLASS_NAME, 'pp-button')
     add_card_button = (By.CLASS_NAME, 'pp-plus-container')
@@ -26,10 +27,8 @@ class UrbanRoutesPage:
 
     message_field = (By.ID, 'comment')
 
-    blanket_switch = (By.XPATH,
-                      '//div[text()="Cobertor e lenços" or contains(text(), "Blanket")]/..//span[@class="slider round"]')
-    blanket_checkbox = (By.XPATH,
-                        '//div[text()="Cobertor e lenços" or contains(text(), "Blanket")]/..//input[@type="checkbox"]')
+    blanket_switch = (By.XPATH, '//div[contains(text(), "Cobertor") or contains(text(), "Blanket")]/..//span[@class="slider round"]')
+    blanket_checkbox = (By.XPATH, '//div[contains(text(), "Cobertor") or contains(text(), "Blanket")]/..//input[@type="checkbox"]')
 
     ice_cream_plus = (By.XPATH,
                       '//div[text()="Sorvete" or contains(text(), "Ice cream")]/..//div[@class="counter-plus"]')
@@ -71,14 +70,17 @@ class UrbanRoutesPage:
         self.wait_for_overlay()
         phone_btn = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.phone_button))
         self.driver.execute_script("arguments[0].click();", phone_btn)
+        time.sleep(1)
 
         phone_field = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.phone_input))
         phone_field.clear()
         clean_phone = phone_number.replace(" ", "")
         phone_field.send_keys(clean_phone)
+        time.sleep(1)
 
         button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.phone_submit_button))
         self.driver.execute_script("arguments[0].click();", button)
+        time.sleep(3)
 
     def set_code(self, code):
         code_field = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.code_input))
@@ -98,30 +100,24 @@ class UrbanRoutesPage:
         add_card = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.add_card_button))
         self.driver.execute_script("arguments[0].click();", add_card)
 
-        # Preenche o número do cartão
         card_num_field = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.card_number_input))
         clean_card = card_number.replace(" ", "")
         card_num_field.send_keys(clean_card)
 
-        # Clica no campo de número para ativar o código (CVV)
         card_num_field.click()
         time.sleep(0.5)
 
-        # Preenche o código do cartão
         card_code_field = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.card_code_input))
         card_code_field.send_keys(card_code)
 
-        # Clica fora para remover o foco dos inputs
         self.driver.find_element(By.TAG_NAME, 'body').click()
         time.sleep(0.5)
 
-        # Submete o cartão usando um XPath flexível que busca qualquer botão de ação válido no modal de pagamento
         submit_card = WebDriverWait(self.driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, '//div[contains(@class, "payment-picker")]//button[contains(@class, "button") and not(contains(@class, "close"))]'))
         )
         self.driver.execute_script("arguments[0].click();", submit_card)
 
-        # Tenta fechar o modal de forma segura (caso já feche sozinho)
         try:
             close_btn = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(self.card_close_button))
             self.driver.execute_script("arguments[0].click();", close_btn)
@@ -135,7 +131,9 @@ class UrbanRoutesPage:
 
     def order_blanket_and_handkerchiefs(self):
         self.wait_for_overlay()
-        blanket = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.blanket_switch))
+        blanket = WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable(self.blanket_switch)
+        )
         self.driver.execute_script("arguments[0].click();", blanket)
 
     def order_2_ice_creams(self):
@@ -152,3 +150,21 @@ class UrbanRoutesPage:
     def is_car_search_modal_visible(self):
         modal = WebDriverWait(self.driver, 15).until(EC.visibility_of_element_located(self.car_search_modal))
         return modal.is_displayed()
+
+    def get_selected_plan(self):
+        selected_plan = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, ".tcard.active .tcard-title"))
+        )
+        return selected_plan.text
+
+    def get_registered_phone(self):
+        phone_element = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, ".np-text"))
+        )
+        return phone_element.text
+
+    def get_payment_method(self):
+        payment_element = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, "pp-value-text"))
+        )
+        return payment_element.text
